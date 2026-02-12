@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Environmental Science Study Tools</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Nunito', sans-serif; }
+    html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    .card-container { perspective: 1000px; }
+    .card-inner {
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    .card-inner.flipped { transform: rotateY(180deg); }
+    .card-front, .card-back {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .card-back { transform: rotateY(180deg); }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .slide-in { animation: slideIn 0.4s ease-out; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .pulse-once { animation: pulse 0.3s ease-in-out; }
+    .progress-ring { transition: stroke-dashoffset 0.5s ease; }
+    @media (max-width: 640px) {
+      .category-btn { padding: 0.375rem 0.625rem; font-size: 0.7rem; }
+    }
+    .option-btn { transition: all 0.2s; }
+    .option-btn:disabled { cursor: not-allowed; }
+    .correct-answer { animation: slideIn 0.4s ease-out; }
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .fade-in-scale { animation: fadeInScale 0.3s ease-out; }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app-wrapper" class="h-full w-full overflow-auto" style="background: linear-gradient(135deg, #e8f5e9 0%, #e3f2fd 50%, #f1f8e9 100%);">
+   <div class="w-full max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6"><!-- Header with Mode Toggle -->
+    <header class="text-center mb-4 sm:mb-6">
+     <div class="flex items-center justify-center gap-2 sm:gap-3 mb-2"><img src="https://imgur.com/rdySCAV.png" alt="Environmental Science Logo" class="w-16 sm:w-20 h-16 sm:h-20 object-contain" loading="lazy" onerror="this.style.display='none';">
+      <h1 id="app-title" class="text-xl sm:text-2xl md:text-3xl font-extrabold text-green-800">Study Tools</h1>
+     </div>
+     <p class="text-green-700 text-xs sm:text-sm">Year 8 Environmental Science</p>
+    </header><!-- Mode Selector -->
+    <div class="flex gap-2 mb-6 justify-center flex-wrap"><button onclick="switchMode('flashcards')" id="flashcards-tab" class="px-3 sm:px-4 py-2 rounded-lg font-semibold transition-all bg-green-600 text-white text-xs sm:text-sm"> 🎴 Flashcards </button> <button onclick="switchMode('quiz')" id="quiz-tab" class="px-3 sm:px-4 py-2 rounded-lg font-semibold transition-all bg-white text-green-700 border-2 border-green-200 text-xs sm:text-sm hover:bg-green-50"> 📝 Quiz </button>
+    </div><!-- FLASHCARDS MODE -->
+    <div id="flashcards-mode" class="space-y-4 sm:space-y-6"><!-- Progress Section -->
+     <div class="bg-white/80 backdrop-blur rounded-2xl p-3 sm:p-4 shadow-lg border border-green-100">
+      <div class="flex items-center justify-between gap-3 sm:gap-4">
+       <div class="flex items-center gap-2 sm:gap-4">
+        <div class="relative w-14 h-14 sm:w-16 sm:h-16">
+         <svg class="w-14 h-14 sm:w-16 sm:h-16 -rotate-90"><circle cx="28" cy="28" r="24" stroke="#e5e7eb" stroke-width="5" fill="none" /> <circle id="progress-ring" class="progress-ring" cx="28" cy="28" r="24" stroke="#22c55e" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="151" stroke-dashoffset="151" />
+         </svg><span id="progress-percent" class="absolute inset-0 flex items-center justify-center text-xs sm:text-sm font-bold text-green-700">0%</span>
+        </div>
+        <div>
+         <p class="text-xs text-gray-600">Cards Left</p>
+         <p id="cards-remaining" class="text-lg sm:text-2xl font-bold text-green-700">0</p>
+        </div>
+       </div>
+       <div class="flex gap-3 sm:gap-4">
+        <div class="text-center">
+         <p class="text-xs text-gray-500">Mastered</p>
+         <p id="mastered-count" class="text-lg sm:text-xl font-bold text-emerald-600">0</p>
+        </div>
+        <div class="text-center">
+         <p class="text-xs text-gray-500">To Review</p>
+         <p id="review-count" class="text-lg sm:text-xl font-bold text-amber-600">0</p>
+        </div>
+       </div>
+      </div>
+     </div><!-- Category Filter -->
+     <div class="flex flex-wrap gap-2 justify-center"><button onclick="filterCategory('all')" class="category-btn px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-green-600 text-white" data-category="all">All</button> <button onclick="filterCategory('photosynthesis')" class="category-btn px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-white text-green-700 border border-green-200" data-category="photosynthesis">🌱 Photo</button> <button onclick="filterCategory('water')" class="category-btn px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-white text-blue-700 border border-blue-200" data-category="water">💧 Water</button> <button onclick="filterCategory('energy')" class="category-btn px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-white text-amber-700 border border-amber-200" data-category="energy">⚡ Energy</button> <button onclick="filterCategory('adjectives')" class="category-btn px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-white text-purple-700 border border-purple-200" data-category="adjectives">📝 Adj</button> <button onclick="filterCategory('nuclear')" class="category-btn px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-white text-red-700 border border-red-200" data-category="nuclear">☢️ Nuclear</button>
+     </div><!-- Main Card Area -->
+     <div id="card-area" class="mb-4 sm:mb-6">
+      <div class="card-container w-full h-72 sm:h-80 md:h-96 cursor-pointer" onclick="flipCard()">
+       <div id="card-inner" class="card-inner relative w-full h-full"><!-- Front -->
+        <div class="card-front absolute inset-0 bg-white rounded-3xl shadow-xl border-2 border-green-200 flex flex-col items-center justify-center p-4 sm:p-6"><span id="card-icon" class="text-4xl sm:text-6xl mb-3 sm:mb-4">🌿</span>
+         <h2 id="card-word" class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-green-800 text-center leading-tight px-2">Loading...</h2>
+         <p class="text-xs sm:text-sm text-gray-400 mt-4 sm:mt-6">Tap to flip</p>
+        </div><!-- Back -->
+        <div class="card-back absolute inset-0 bg-gradient-to-br from-green-50 to-blue-50 rounded-3xl shadow-xl border-2 border-blue-200 flex flex-col p-4 sm:p-6 overflow-auto">
+         <div class="flex-1">
+          <div class="flex items-start gap-2 mb-3 sm:mb-4"><span id="back-icon" class="text-3xl sm:text-4xl flex-shrink-0">🌿</span>
+           <h3 id="back-word" class="text-base sm:text-lg md:text-xl font-bold text-green-800 pt-1 break-words">Word</h3>
+          </div>
+          <div class="bg-white/70 rounded-xl p-3 sm:p-4 mb-2 sm:mb-3">
+           <p class="text-xs text-gray-500 font-semibold mb-1.5">Definition:</p>
+           <p id="card-definition" class="text-sm sm:text-base text-gray-800 leading-relaxed">Definition here...</p>
+          </div>
+          <div class="bg-blue-50/70 rounded-xl p-3 sm:p-4">
+           <p class="text-xs text-blue-600 font-semibold mb-1.5">Example:</p>
+           <p id="card-example" class="text-sm sm:text-base text-blue-800 italic leading-relaxed">"Example sentence here."</p>
+          </div>
+         </div>
+        </div>
+       </div>
+      </div><!-- Action Buttons -->
+      <div id="action-buttons" class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 mt-4 sm:mt-5 opacity-0 transition-opacity duration-300"><button onclick="markPracticeAgain()" class="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-lg sm:rounded-xl shadow-lg transition-all active:scale-95 flex-1 sm:flex-none text-sm sm:text-base"> <span class="text-lg sm:text-xl">🔁</span> <span>Practice Again</span> </button> <button onclick="markKnown()" class="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-lg sm:rounded-xl shadow-lg transition-all active:scale-95 flex-1 sm:flex-none text-sm sm:text-base"> <span class="text-lg sm:text-xl">✅</span> <span>I Know This</span> </button>
+      </div>
+     </div><!-- Completion Message -->
+     <div id="completion-message" class="hidden text-center py-8 sm:py-12">
+      <div class="bg-white rounded-3xl shadow-xl p-6 sm:p-8 border-2 border-green-200 mx-2"><span class="text-5xl sm:text-6xl block mb-3 sm:mb-4">🎉</span>
+       <h2 class="text-xl sm:text-2xl font-bold text-green-800 mb-2">Amazing Work!</h2>
+       <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">You've reviewed all the cards in this session.</p><button onclick="restartSession()" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold rounded-lg sm:rounded-xl shadow-lg transition-all"> Start New Session </button>
+      </div>
+     </div><!-- Mastered Section -->
+     <div id="mastered-section" class="bg-white/80 backdrop-blur rounded-2xl p-3 sm:p-4 shadow-lg border border-emerald-100 mx-2 sm:mx-0">
+      <div class="flex items-center justify-between mb-3 sm:mb-4">
+       <h3 id="mastered-label" class="font-bold text-emerald-800 text-sm sm:text-base flex items-center gap-2"><span>🏆</span> Mastered Words</h3><button onclick="toggleMastered()" class="text-xs sm:text-sm text-emerald-600 hover:text-emerald-800 font-semibold"> <span id="toggle-text">Show</span> </button>
+      </div>
+      <div id="mastered-list" class="hidden flex-wrap gap-2">
+       <p class="text-gray-400 text-xs w-full">No words mastered yet. Keep practicing!</p>
+      </div>
+     </div>
+    </div><!-- QUIZ MODE -->
+    <div id="quiz-mode" class="hidden space-y-6"><!-- Quiz Progress Bar -->
+     <div class="bg-white/80 backdrop-blur rounded-2xl p-4 shadow-lg border border-blue-100">
+      <div class="flex items-center justify-between mb-3">
+       <p class="text-sm font-semibold text-gray-700">Question <span id="quiz-question-num">1</span> of <span id="quiz-total-questions">30</span></p>
+       <p class="text-sm font-semibold text-blue-600">Score: <span id="quiz-score">0</span>/<span id="quiz-answered">0</span></p>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2">
+       <div id="quiz-progress-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+     </div><!-- Quiz Question Container -->
+     <div id="quiz-container" class="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border-2 border-blue-200 fade-in-scale">
+      <div id="question-content" class="min-h-96"></div>
+     </div><!-- Quiz Completion Screen -->
+     <div id="quiz-completion" class="hidden text-center py-8 sm:py-12">
+      <div class="bg-white rounded-3xl shadow-xl p-6 sm:p-8 border-2 border-blue-200"><span id="completion-emoji" class="text-5xl sm:text-6xl block mb-3 sm:mb-4">🎉</span>
+       <h2 class="text-xl sm:text-2xl font-bold text-blue-800 mb-2">Quiz Complete!</h2>
+       <p id="final-score-text" class="text-2xl sm:text-3xl font-extrabold text-blue-600 mb-2">0 / 30</p>
+       <p id="performance-message" class="text-sm sm:text-base text-gray-600 mb-6">Keep practicing to improve!</p>
+       <div class="flex flex-col sm:flex-row gap-3 justify-center"><button onclick="restartQuiz()" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg sm:rounded-xl shadow-lg transition-all text-sm sm:text-base"> Try Again </button> <button onclick="switchMode('flashcards')" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded-lg sm:rounded-xl shadow-lg transition-all text-sm sm:text-base"> Back to Flashcards </button>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Flashcard Data
+    const flashcards = [
+      // Photosynthesis
+      { word: "carbon dioxide", definition: "A gas (CO₂) that plants absorb from the air and use to make food during photosynthesis.", example: "Plants take in carbon dioxide through tiny holes in their leaves.", category: "photosynthesis", icon: "🌫️" },
+      { word: "glucose", definition: "A type of sugar that plants make during photosynthesis. It gives plants energy to grow.", example: "The plant stores glucose in its leaves and stems for energy.", category: "photosynthesis", icon: "🍬" },
+      { word: "oxygen", definition: "A gas (O₂) that plants release into the air during photosynthesis. Humans and animals need it to breathe.", example: "Trees produce oxygen that we breathe every day.", category: "photosynthesis", icon: "💨" },
+      { word: "photosynthesis", definition: "The process plants use to turn sunlight, water, and carbon dioxide into glucose and oxygen.", example: "Photosynthesis happens mainly in the green leaves of plants.", category: "photosynthesis", icon: "🌱" },
+      { word: "sunlight", definition: "Light energy from the sun that plants need to make food.", example: "Without sunlight, plants cannot perform photosynthesis.", category: "photosynthesis", icon: "☀️" },
+      { word: "waste product", definition: "Something produced during a process that is not needed. In photosynthesis, oxygen is a waste product.", example: "Oxygen is a waste product of photosynthesis, but it is essential for humans.", category: "photosynthesis", icon: "♻️" },
+      
+      // Water & Environment
+      { word: "agriculture", definition: "The practice of farming – growing crops and raising animals for food.", example: "Agriculture uses a lot of fresh water for irrigation.", category: "water", icon: "🌾" },
+      { word: "desalination plants", definition: "Factories that remove salt from sea water to make it safe to drink.", example: "Some countries use desalination plants to provide drinking water.", category: "water", icon: "🏭" },
+      { word: "drinking water", definition: "Clean, safe water that humans can drink without getting sick.", example: "Access to clean drinking water is important for health.", category: "water", icon: "🚰" },
+      { word: "drought", definition: "A long period of time with very little or no rain, causing water shortages.", example: "The drought lasted for three months and damaged many crops.", category: "water", icon: "🏜️" },
+      { word: "fresh water", definition: "Water that is not salty, found in rivers, lakes, and underground. Only about 3% of Earth's water is fresh.", example: "Fresh water from rivers is used for drinking and farming.", category: "water", icon: "💧" },
+      { word: "glaciers", definition: "Huge masses of ice found in cold regions. They store a lot of Earth's fresh water.", example: "Glaciers are melting faster due to global warming.", category: "water", icon: "🏔️" },
+      { word: "irrigation", definition: "A system of supplying water to crops and farmland, usually through pipes or channels.", example: "Farmers use irrigation to water their fields during dry seasons.", category: "water", icon: "🌊" },
+      { word: "rainfall", definition: "Water that falls from clouds as rain.", example: "Low rainfall this year has caused problems for farmers.", category: "water", icon: "🌧️" },
+      { word: "sea water", definition: "Salty water found in oceans and seas. It is not safe to drink without treatment.", example: "Sea water covers about 70% of the Earth's surface.", category: "water", icon: "🌊" },
+      { word: "washing machines", definition: "Household appliances that clean clothes using water and electricity.", example: "Modern washing machines use less water than older models.", category: "water", icon: "🧺" },
+      { word: "wells", definition: "Deep holes dug into the ground to reach underground water.", example: "In some villages, people get their water from wells.", category: "water", icon: "⛏️" },
+      
+      // Energy & Environment
+      { word: "ecologist", definition: "A scientist who studies how living things interact with each other and their environment.", example: "The ecologist studied how pollution affects river fish.", category: "energy", icon: "🔬" },
+      { word: "natural resources", definition: "Materials from nature that humans use, such as water, wood, oil, and minerals.", example: "We must protect our natural resources for future generations.", category: "energy", icon: "🌍" },
+      { word: "eco-friendly policies", definition: "Rules and plans made by governments or companies to help protect the environment.", example: "The school introduced eco-friendly policies to reduce waste.", category: "energy", icon: "📋" },
+      { word: "carbon-neutral", definition: "When the amount of carbon dioxide released equals the amount removed or offset.", example: "The company aims to become carbon-neutral by 2030.", category: "energy", icon: "⚖️" },
+      { word: "zero-carbon emissions", definition: "Producing no carbon dioxide at all from activities or processes.", example: "Electric cars powered by solar energy have zero-carbon emissions.", category: "energy", icon: "0️⃣" },
+      { word: "renewable sources", definition: "Energy sources that won't run out, like sunlight, wind, and water.", example: "Wind and solar are examples of renewable sources of energy.", category: "energy", icon: "🔄" },
+      { word: "solar power", definition: "Energy from sunlight, captured using solar panels to make electricity.", example: "Many homes now use solar power to reduce electricity bills.", category: "energy", icon: "☀️" },
+      { word: "hydro-electric power", definition: "Electricity made from the energy of moving water, usually from dams.", example: "Hydro-electric power is a clean source of energy.", category: "energy", icon: "💧" },
+      { word: "geothermal power", definition: "Energy from heat deep inside the Earth, used to generate electricity.", example: "Iceland uses geothermal power because of its volcanic activity.", category: "energy", icon: "🌋" },
+      { word: "environment", definition: "Everything around us – the air, water, land, plants, and animals.", example: "We should all help protect the environment from pollution.", category: "energy", icon: "🌿" },
+      { word: "global warming", definition: "The gradual increase in Earth's average temperature, mainly caused by greenhouse gases.", example: "Global warming is causing ice caps to melt faster.", category: "energy", icon: "🌡️" },
+      { word: "climate change", definition: "Long-term changes in weather patterns around the world, often caused by human activities.", example: "Climate change is causing more extreme weather events.", category: "energy", icon: "🌪️" },
+      { word: "emissions", definition: "Gases or substances released into the air, especially from factories and vehicles.", example: "Car emissions contribute to air pollution in cities.", category: "energy", icon: "💨" },
+      { word: "pollute", definition: "To make air, water, or land dirty and harmful to living things.", example: "Factories that pollute rivers can kill fish and other wildlife.", category: "energy", icon: "🏭" },
+      { word: "provide", definition: "To give or supply something that is needed.", example: "Solar panels provide clean electricity for homes.", category: "energy", icon: "🎁" },
+      { word: "generate", definition: "To produce or create something, especially electricity.", example: "Wind turbines generate electricity without burning fuel.", category: "energy", icon: "⚡" },
+      { word: "produce", definition: "To make or create something.", example: "Plants produce oxygen during photosynthesis.", category: "energy", icon: "🏭" },
+      
+      // Adjectives
+      { word: "clean", definition: "Not dirty or polluting. Clean energy doesn't harm the environment.", example: "Solar power is a clean source of energy.", category: "adjectives", icon: "✨" },
+      { word: "dirty", definition: "Causing pollution or harm to the environment.", example: "Coal is considered a dirty fuel because it releases harmful gases.", category: "adjectives", icon: "💨" },
+      { word: "safe", definition: "Not dangerous; unlikely to cause harm.", example: "Renewable energy sources are safe for the environment.", category: "adjectives", icon: "🛡️" },
+      { word: "dangerous", definition: "Likely to cause harm or injury.", example: "Radioactive waste is dangerous and must be stored carefully.", category: "adjectives", icon: "⚠️" },
+      { word: "cheap", definition: "Not expensive; costing little money.", example: "Solar energy is becoming cheaper every year.", category: "adjectives", icon: "💰" },
+      { word: "expensive", definition: "Costing a lot of money.", example: "Building new nuclear power plants is very expensive.", category: "adjectives", icon: "💎" },
+      { word: "reliable", definition: "Can be trusted to work well and consistently.", example: "Nuclear power is reliable because it works day and night.", category: "adjectives", icon: "✅" },
+      { word: "unreliable", definition: "Cannot be trusted to work consistently.", example: "Solar power can be unreliable on cloudy days.", category: "adjectives", icon: "❓" },
+      { word: "renewable", definition: "Can be replaced naturally and won't run out.", example: "Wind is a renewable source of energy.", category: "adjectives", icon: "🔄" },
+      { word: "non-renewable", definition: "Cannot be replaced once used up. Will eventually run out.", example: "Oil and coal are non-renewable resources.", category: "adjectives", icon: "⛽" },
+      
+      // Nuclear
+      { word: "chemical reaction", definition: "A process where substances change into different substances.", example: "Burning wood is a chemical reaction that produces heat.", category: "nuclear", icon: "⚗️" },
+      { word: "nuclear fuels", definition: "Materials like uranium used in nuclear power plants to produce energy.", example: "Nuclear fuels can generate huge amounts of electricity.", category: "nuclear", icon: "☢️" },
+      { word: "plutonium", definition: "A radioactive element used in nuclear weapons and some power plants.", example: "Plutonium is very dangerous and must be handled with care.", category: "nuclear", icon: "☢️" },
+      { word: "radioactive materials", definition: "Substances that give off harmful energy rays. They can be dangerous to living things.", example: "Workers who handle radioactive materials wear protective suits.", category: "nuclear", icon: "☢️" },
+      { word: "uranium", definition: "A radioactive element commonly used as fuel in nuclear power plants.", example: "Uranium is mined from the ground and processed for use in reactors.", category: "nuclear", icon: "⚛️" }
+    ];
+
+    // Quiz Questions
+    const quizQuestions = [
+      // Part 1: Basic Meaning Recognition (Multiple Choice - Definition → Word)
+      {
+        type: "definition-to-word",
+        question: "What word means: 'A gas that plants absorb from the air and use to make food'?",
+        correct: "carbon dioxide",
+        options: ["oxygen", "carbon dioxide", "glucose", "sunlight"]
+      },
+      {
+        type: "definition-to-word",
+        question: "Which word means: 'A type of sugar that plants make during photosynthesis'?",
+        correct: "glucose",
+        options: ["glucose", "carbon dioxide", "nitrogen", "chlorophyll"]
+      },
+      {
+        type: "definition-to-word",
+        question: "What do we call the process plants use to turn sunlight into food?",
+        correct: "photosynthesis",
+        options: ["respiration", "photosynthesis", "fermentation", "decomposition"]
+      },
+      {
+        type: "definition-to-word",
+        question: "Which word describes a long period with no rain and water shortages?",
+        correct: "drought",
+        options: ["drought", "rainfall", "irrigation", "glacier"]
+      },
+      {
+        type: "definition-to-word",
+        question: "What is water that is not salty called?",
+        correct: "fresh water",
+        options: ["fresh water", "sea water", "drinking water", "mineral water"]
+      },
+      {
+        type: "definition-to-word",
+        question: "Which word means 'factories that remove salt from sea water'?",
+        correct: "desalination plants",
+        options: ["wells", "desalination plants", "reservoirs", "dams"]
+      },
+      {
+        type: "definition-to-word",
+        question: "What do we call the practice of farming and raising animals for food?",
+        correct: "agriculture",
+        options: ["horticulture", "agriculture", "aquaculture", "silviculture"]
+      },
+      {
+        type: "definition-to-word",
+        question: "A scientist who studies how living things interact with their environment is called a(n):",
+        correct: "ecologist",
+        options: ["geologist", "ecologist", "biologist", "botanist"]
+      },
+
+      // Part 1: Word to Definition
+      {
+        type: "word-to-definition",
+        question: "What does 'glaciers' mean?",
+        correct: "Huge masses of ice in cold regions that store fresh water",
+        options: [
+          "Huge masses of ice in cold regions that store fresh water",
+          "Systems that supply water to farms",
+          "Machines that clean clothes with water",
+          "Deep holes dug to reach underground water"
+        ]
+      },
+      {
+        type: "word-to-definition",
+        question: "What does 'renewable sources' mean?",
+        correct: "Energy sources that won't run out",
+        options: [
+          "Energy sources that won't run out",
+          "Energy sources that will eventually run out",
+          "Factories that produce energy",
+          "Systems that use water for energy"
+        ]
+      },
+      {
+        type: "word-to-definition",
+        question: "What does 'climate change' mean?",
+        correct: "Long-term changes in weather patterns caused by human activities",
+        options: [
+          "The weather changing each day",
+          "Long-term changes in weather patterns caused by human activities",
+          "The season changing",
+          "Short periods without rain"
+        ]
+      },
+      {
+        type: "word-to-definition",
+        question: "What does 'pollute' mean?",
+        correct: "To make air, water, or land dirty and harmful",
+        options: [
+          "To clean something",
+          "To make air, water, or land dirty and harmful",
+          "To provide energy",
+          "To produce electricity"
+        ]
+      },
+      {
+        type: "word-to-definition",
+        question: "What does 'carbon-neutral' mean?",
+        correct: "When CO₂ released equals the amount removed or offset",
+        options: [
+          "When there is no carbon in something",
+          "When CO₂ released equals the amount removed or offset",
+          "When carbon is removed from the air",
+          "When carbon is produced in factories"
+        ]
+      },
+
+      // Part 2: Fill in the Gap
+      {
+        type: "fill-gap",
+        question: "During _____, plants use sunlight to make glucose and oxygen.",
+        correct: "photosynthesis",
+        options: ["photosynthesis", "respiration", "evaporation", "decomposition"]
+      },
+      {
+        type: "fill-gap",
+        question: "Farmers use _____ systems to water their fields during dry seasons.",
+        correct: "irrigation",
+        options: ["irrigation", "drainage", "filtration", "precipitation"]
+      },
+      {
+        type: "fill-gap",
+        question: "Without _____, plants cannot perform photosynthesis.",
+        correct: "sunlight",
+        options: ["water", "soil", "sunlight", "nutrients"]
+      },
+      {
+        type: "fill-gap",
+        question: "Solar panels _____ clean electricity from sunlight.",
+        correct: "generate",
+        options: ["generate", "consume", "store", "waste"]
+      },
+      {
+        type: "fill-gap",
+        question: "Trees _____ oxygen into the air during photosynthesis.",
+        correct: "produce",
+        options: ["consume", "store", "produce", "absorb"]
+      },
+      {
+        type: "fill-gap",
+        question: "Car _____ contribute to air pollution in cities.",
+        correct: "emissions",
+        options: ["fuel", "emissions", "wheels", "engines"]
+      },
+      {
+        type: "fill-gap",
+        question: "Modern washing machines _____ less water than older models.",
+        correct: "use",
+        options: ["use", "waste", "clean", "filter"]
+      },
+      {
+        type: "fill-gap",
+        question: "_____ power is energy made from moving water in dams.",
+        correct: "Hydro-electric",
+        options: ["Solar", "Hydro-electric", "Geothermal", "Wind"]
+      },
+
+      // Part 3: True / False
+      {
+        type: "true-false",
+        question: "True or False: Oxygen is a waste product of photosynthesis.",
+        correct: true
+      },
+      {
+        type: "true-false",
+        question: "True or False: All water on Earth is safe to drink.",
+        correct: false
+      },
+      {
+        type: "true-false",
+        question: "True or False: Renewable sources of energy will never run out.",
+        correct: true
+      },
+      {
+        type: "true-false",
+        question: "True or False: Coal is a clean source of energy.",
+        correct: false
+      },
+      {
+        type: "true-false",
+        question: "True or False: Glaciers are melting faster due to global warming.",
+        correct: true
+      },
+      {
+        type: "true-false",
+        question: "True or False: Nuclear power uses radioactive materials.",
+        correct: true
+      },
+      {
+        type: "true-false",
+        question: "True or False: Solar power works well during night time.",
+        correct: false
+      },
+      {
+        type: "true-false",
+        question: "True or False: Fresh water makes up about 50% of Earth's water.",
+        correct: false
+      },
+
+      // Part 3: Match Definition
+      {
+        type: "definition-to-word",
+        question: "Which term describes producing no carbon dioxide at all?",
+        correct: "zero-carbon emissions",
+        options: ["carbon-neutral", "zero-carbon emissions", "emissions", "pollute"]
+      },
+      {
+        type: "definition-to-word",
+        question: "What do we call rules and plans to help protect the environment?",
+        correct: "eco-friendly policies",
+        options: ["natural resources", "eco-friendly policies", "climate change", "emissions"]
+      },
+      {
+        type: "definition-to-word",
+        question: "Which word means: 'A process where substances change into different substances'?",
+        correct: "chemical reaction",
+        options: ["photosynthesis", "chemical reaction", "radioactive", "nuclear"]
+      },
+      {
+        type: "definition-to-word",
+        question: "What is 'a radioactive element used as fuel in nuclear power plants'?",
+        correct: "uranium",
+        options: ["plutonium", "uranium", "carbon", "nitrogen"]
+      },
+      {
+        type: "definition-to-word",
+        question: "Which word describes something that cannot be trusted to work consistently?",
+        correct: "unreliable",
+        options: ["reliable", "unreliable", "renewable", "non-renewable"]
+      },
+
+      // Additional Context Questions
+      {
+        type: "fill-gap",
+        question: "The gradual increase in Earth's temperature is called _____.",
+        correct: "global warming",
+        options: ["climate change", "global warming", "environmental damage", "pollution"]
+      },
+      {
+        type: "word-to-definition",
+        question: "What does 'geothermal power' mean?",
+        correct: "Energy from heat deep inside the Earth",
+        options: [
+          "Energy from heat deep inside the Earth",
+          "Energy from underground oil",
+          "Energy from burning coal",
+          "Energy from rivers"
+        ]
+      }
+    ];
+
+    // App State
+    let currentDeck = [];
+    let masteredCards = [];
+    let currentIndex = 0;
+    let isFlipped = false;
+    let currentCategory = 'all';
+    let totalCards = 0;
+    let currentMode = 'flashcards';
+
+    // Quiz State
+    let quizQuestions_shuffled = [];
+    let currentQuestionIndex = 0;
+    let quizScore = 0;
+    let quizAnswered = 0;
+    let selectedAnswers = {};
+
+    // Default Config
+    const defaultConfig = {
+      app_title: "Environmental Science Study Tools",
+      mastered_label: "Mastered Words",
+      background_color: "#e8f5e9",
+      surface_color: "#ffffff",
+      text_color: "#166534",
+      primary_action_color: "#22c55e",
+      secondary_action_color: "#f59e0b"
+    };
+
+    // Initialize Element SDK
+    window.elementSdk.init({
+      defaultConfig,
+      onConfigChange: async (config) => {
+        document.getElementById('app-title').textContent = config.app_title || defaultConfig.app_title;
+        document.getElementById('mastered-label').innerHTML = `<span>🏆</span> ${config.mastered_label || defaultConfig.mastered_label}`;
+        
+        const wrapper = document.getElementById('app-wrapper');
+        wrapper.style.background = `linear-gradient(135deg, ${config.background_color || defaultConfig.background_color} 0%, #e3f2fd 50%, #f1f8e9 100%)`;
+      },
+      mapToCapabilities: (config) => ({
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (value) => window.elementSdk.setConfig({ background_color: value })
+          },
+          {
+            get: () => config.surface_color || defaultConfig.surface_color,
+            set: (value) => window.elementSdk.setConfig({ surface_color: value })
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (value) => window.elementSdk.setConfig({ text_color: value })
+          },
+          {
+            get: () => config.primary_action_color || defaultConfig.primary_action_color,
+            set: (value) => window.elementSdk.setConfig({ primary_action_color: value })
+          },
+          {
+            get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+            set: (value) => window.elementSdk.setConfig({ secondary_action_color: value })
+          }
+        ],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      }),
+      mapToEditPanelValues: (config) => new Map([
+        ["app_title", config.app_title || defaultConfig.app_title],
+        ["mastered_label", config.mastered_label || defaultConfig.mastered_label]
+      ])
+    });
+
+    // Shuffle array
+    function shuffle(array) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    // Switch between flashcards and quiz modes
+    function switchMode(mode) {
+      currentMode = mode;
+      
+      document.getElementById('flashcards-tab').classList.toggle('bg-green-600');
+      document.getElementById('flashcards-tab').classList.toggle('text-white');
+      document.getElementById('flashcards-tab').classList.toggle('bg-white');
+      document.getElementById('flashcards-tab').classList.toggle('text-green-700');
+      document.getElementById('flashcards-tab').classList.toggle('border-2');
+      document.getElementById('flashcards-tab').classList.toggle('border-green-200');
+      
+      document.getElementById('quiz-tab').classList.toggle('bg-blue-600');
+      document.getElementById('quiz-tab').classList.toggle('text-white');
+      document.getElementById('quiz-tab').classList.toggle('bg-white');
+      document.getElementById('quiz-tab').classList.toggle('text-blue-700');
+      document.getElementById('quiz-tab').classList.toggle('border-2');
+      document.getElementById('quiz-tab').classList.toggle('border-blue-200');
+
+      if (mode === 'flashcards') {
+        document.getElementById('flashcards-mode').classList.remove('hidden');
+        document.getElementById('quiz-mode').classList.add('hidden');
+        initializeDeck();
+      } else {
+        document.getElementById('flashcards-mode').classList.add('hidden');
+        document.getElementById('quiz-mode').classList.remove('hidden');
+        initializeQuiz();
+      }
+    }
+
+    // Initialize Quiz
+    function initializeQuiz() {
+      quizQuestions_shuffled = shuffle(quizQuestions);
+      currentQuestionIndex = 0;
+      quizScore = 0;
+      quizAnswered = 0;
+      selectedAnswers = {};
+      
+      document.getElementById('quiz-total-questions').textContent = quizQuestions_shuffled.length;
+      document.getElementById('quiz-completion').classList.add('hidden');
+      document.getElementById('quiz-container').classList.remove('hidden');
+      
+      showQuizQuestion();
+    }
+
+    // Show quiz question
+    function showQuizQuestion() {
+      if (currentQuestionIndex >= quizQuestions_shuffled.length) {
+        showQuizCompletion();
+        return;
+      }
+
+      const question = quizQuestions_shuffled[currentQuestionIndex];
+      updateQuizProgress();
+      renderQuestion(question);
+    }
+
+    // Render question based on type
+    function renderQuestion(question) {
+      const container = document.getElementById('question-content');
+      let html = `<div class="mb-4"><p class="text-sm sm:text-base font-semibold text-gray-600 mb-4">${question.question}</p>`;
+
+      if (question.type === 'true-false') {
+        html += `
+          <div class="flex gap-3 flex-col sm:flex-row">
+            <button class="option-btn option-btn-true flex-1 px-4 py-3 rounded-lg border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all text-sm sm:text-base font-semibold" onclick="answerTrueFalse(true, ${currentQuestionIndex})">
+              ✅ True
+            </button>
+            <button class="option-btn option-btn-false flex-1 px-4 py-3 rounded-lg border-2 border-gray-200 hover:border-red-500 hover:bg-red-50 transition-all text-sm sm:text-base font-semibold" onclick="answerTrueFalse(false, ${currentQuestionIndex})">
+              ❌ False
+            </button>
+          </div>
+        `;
+      } else {
+        html += `<div class="space-y-2">`;
+        const shuffledOptions = shuffle(question.options);
+        shuffledOptions.forEach((option, idx) => {
+          html += `
+            <button class="option-btn w-full px-4 py-3 rounded-lg border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all text-left text-sm sm:text-base font-semibold" onclick="answerMultipleChoice('${option}', '${question.correct}', ${currentQuestionIndex})">
+              ${option}
+            </button>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // Answer multiple choice
+    function answerMultipleChoice(selected, correct, questionIdx) {
+      if (selectedAnswers[questionIdx] !== undefined) return;
+      
+      selectedAnswers[questionIdx] = selected;
+      const isCorrect = selected === correct;
+      
+      if (isCorrect) {
+        quizScore++;
+      }
+      quizAnswered++;
+      
+      showQuizFeedback(isCorrect, selected, correct);
+    }
+
+    // Answer true/false
+    function answerTrueFalse(selected, questionIdx) {
+      if (selectedAnswers[questionIdx] !== undefined) return;
+      
+      selectedAnswers[questionIdx] = selected;
+      const question = quizQuestions_shuffled[questionIdx];
+      const isCorrect = selected === question.correct;
+      
+      if (isCorrect) {
+        quizScore++;
+      }
+      quizAnswered++;
+      
+      showQuizFeedback(isCorrect, selected, question.correct);
+    }
+
+    // Show feedback after answer
+    function showQuizFeedback(isCorrect, selected, correct) {
+      const container = document.getElementById('question-content');
+      const currentQ = quizQuestions_shuffled[currentQuestionIndex];
+      
+      let feedbackHTML = `
+        <div class="mb-6">
+          <p class="text-sm sm:text-base font-semibold text-gray-600 mb-4">${currentQ.question}</p>
+          <div class="p-4 rounded-lg mb-4 ${isCorrect ? 'bg-emerald-100 border-2 border-emerald-400' : 'bg-red-100 border-2 border-red-400'}">
+            <p class="text-lg sm:text-xl font-bold ${isCorrect ? 'text-emerald-700' : 'text-red-700'}">
+              ${isCorrect ? '✅ Correct!' : '❌ Not quite right'}
+            </p>
+            <p class="text-sm sm:text-base ${isCorrect ? 'text-emerald-600' : 'text-red-600'} mt-2">
+              ${isCorrect ? 'Great job!' : 'The correct answer is: ' + correct}
+            </p>
+          </div>
+        </div>
+
+        <button onclick="nextQuizQuestion()" class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all text-sm sm:text-base">
+          Next Question
+        </button>
+      `;
+      
+      container.innerHTML = feedbackHTML;
+    }
+
+    // Next question
+    function nextQuizQuestion() {
+      currentQuestionIndex++;
+      const container = document.getElementById('question-content');
+      container.classList.remove('fade-in-scale');
+      setTimeout(() => {
+        container.classList.add('fade-in-scale');
+        showQuizQuestion();
+      }, 10);
+    }
+
+    // Update quiz progress bar
+    function updateQuizProgress() {
+      const progress = (quizAnswered / quizQuestions_shuffled.length) * 100;
+      document.getElementById('quiz-progress-bar').style.width = progress + '%';
+      document.getElementById('quiz-question-num').textContent = currentQuestionIndex + 1;
+      document.getElementById('quiz-score').textContent = quizScore;
+      document.getElementById('quiz-answered').textContent = quizAnswered;
+    }
+
+    // Show quiz completion screen
+    function showQuizCompletion() {
+      document.getElementById('quiz-container').classList.add('hidden');
+      document.getElementById('quiz-completion').classList.remove('hidden');
+      
+      const percentage = Math.round((quizScore / quizQuestions_shuffled.length) * 100);
+      document.getElementById('final-score-text').textContent = quizScore + ' / ' + quizQuestions_shuffled.length;
+      
+      let emoji = '😞';
+      let message = 'Keep practicing to improve!';
+      
+      if (percentage >= 90) {
+        emoji = '🏆';
+        message = 'Outstanding! You are a quiz master!';
+      } else if (percentage >= 80) {
+        emoji = '🎉';
+        message = 'Excellent work! You know this material well!';
+      } else if (percentage >= 70) {
+        emoji = '😊';
+        message = 'Good job! Review the material and try again.';
+      } else if (percentage >= 60) {
+        emoji = '📚';
+        message = 'You\'re doing OK! Study more vocabulary words.';
+      }
+      
+      document.getElementById('completion-emoji').textContent = emoji;
+      document.getElementById('performance-message').textContent = message;
+    }
+
+    // Restart quiz
+    function restartQuiz() {
+      initializeQuiz();
+    }
+
+    // FLASHCARD FUNCTIONS
+
+    // Initialize deck
+    function initializeDeck() {
+      const filtered = currentCategory === 'all' 
+        ? flashcards 
+        : flashcards.filter(card => card.category === currentCategory);
+      
+      currentDeck = shuffle(filtered);
+      masteredCards = [];
+      currentIndex = 0;
+      totalCards = currentDeck.length;
+      
+      updateProgress();
+      showCurrentCard();
+      updateMasteredList();
+    }
+
+    // Filter by category
+    function filterCategory(category) {
+      currentCategory = category;
+      
+      document.querySelectorAll('.category-btn').forEach(btn => {
+        const btnCat = btn.dataset.category;
+        if (btnCat === category) {
+          btn.className = 'category-btn px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-green-600 text-white';
+        } else {
+          const colors = {
+            'all': 'text-green-700 border-green-200',
+            'photosynthesis': 'text-green-700 border-green-200',
+            'water': 'text-blue-700 border-blue-200',
+            'energy': 'text-amber-700 border-amber-200',
+            'adjectives': 'text-purple-700 border-purple-200',
+            'nuclear': 'text-red-700 border-red-200'
+          };
+          btn.className = `category-btn px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-white ${colors[btnCat]} border`;
+        }
+      });
+      
+      initializeDeck();
+    }
+
+    // Show current card
+    function showCurrentCard() {
+      const cardArea = document.getElementById('card-area');
+      const completionMessage = document.getElementById('completion-message');
+      
+      if (currentDeck.length === 0) {
+        cardArea.classList.add('hidden');
+        completionMessage.classList.remove('hidden');
+        return;
+      }
+      
+      cardArea.classList.remove('hidden');
+      completionMessage.classList.add('hidden');
+      
+      const card = currentDeck[currentIndex];
+      
+      isFlipped = false;
+      document.getElementById('card-inner').classList.remove('flipped');
+      document.getElementById('action-buttons').style.opacity = '0';
+      
+      document.getElementById('card-icon').textContent = card.icon;
+      document.getElementById('card-word').textContent = card.word;
+      document.getElementById('back-icon').textContent = card.icon;
+      document.getElementById('back-word').textContent = card.word;
+      document.getElementById('card-definition').textContent = card.definition;
+      document.getElementById('card-example').textContent = `"${card.example}"`;
+      
+      const cardInner = document.getElementById('card-inner');
+      cardInner.classList.add('slide-in');
+      setTimeout(() => cardInner.classList.remove('slide-in'), 400);
+    }
+
+    // Flip card
+    function flipCard() {
+      isFlipped = !isFlipped;
+      document.getElementById('card-inner').classList.toggle('flipped');
+      
+      if (isFlipped) {
+        document.getElementById('action-buttons').style.opacity = '1';
+      } else {
+        document.getElementById('action-buttons').style.opacity = '0';
+      }
+    }
+
+    // Mark as known
+    function markKnown() {
+      const card = currentDeck.splice(currentIndex, 1)[0];
+      masteredCards.push(card);
+      
+      if (currentIndex >= currentDeck.length) {
+        currentIndex = 0;
+      }
+      
+      updateProgress();
+      updateMasteredList();
+      showCurrentCard();
+    }
+
+    // Mark for practice again
+    function markPracticeAgain() {
+      const card = currentDeck.splice(currentIndex, 1)[0];
+      
+      const insertPosition = Math.min(currentIndex + 3 + Math.floor(Math.random() * 3), currentDeck.length);
+      currentDeck.splice(insertPosition, 0, card);
+      
+      if (currentIndex >= currentDeck.length) {
+        currentIndex = 0;
+      }
+      
+      updateProgress();
+      showCurrentCard();
+    }
+
+    // Update progress display
+    function updateProgress() {
+      const remaining = currentDeck.length;
+      const mastered = masteredCards.length;
+      const total = remaining + mastered;
+      const percent = total > 0 ? Math.round((mastered / total) * 100) : 0;
+      
+      document.getElementById('cards-remaining').textContent = remaining;
+      document.getElementById('mastered-count').textContent = mastered;
+      document.getElementById('review-count').textContent = remaining;
+      document.getElementById('progress-percent').textContent = `${percent}%`;
+      
+      const ring = document.getElementById('progress-ring');
+      const circumference = 151;
+      const offset = circumference - (percent / 100) * circumference;
+      ring.style.strokeDashoffset = offset;
+    }
+
+    // Update mastered list
+    function updateMasteredList() {
+      const list = document.getElementById('mastered-list');
+      
+      if (masteredCards.length === 0) {
+        list.innerHTML = '<p class="text-gray-400 text-xs w-full">No words mastered yet. Keep practicing!</p>';
+        return;
+      }
+      
+      list.innerHTML = masteredCards.map(card => `
+        <span class="inline-flex items-center gap-1 px-2 sm:px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
+          ${card.icon} <span class="hidden sm:inline">${card.word}</span><span class="sm:hidden">${card.word.split(' ')[0]}</span>
+        </span>
+      `).join('');
+    }
+
+    // Toggle mastered section
+    function toggleMastered() {
+      const list = document.getElementById('mastered-list');
+      const toggleText = document.getElementById('toggle-text');
+      
+      if (list.classList.contains('hidden')) {
+        list.classList.remove('hidden');
+        list.classList.add('flex');
+        toggleText.textContent = 'Hide';
+      } else {
+        list.classList.add('hidden');
+        list.classList.remove('flex');
+        toggleText.textContent = 'Show';
+      }
+    }
+
+    // Restart session
+    function restartSession() {
+      initializeDeck();
+    }
+
+    // Initialize app with flashcards
+    initializeDeck();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ccbeea0276ac6a5',t:'MTc3MDg5NzY5NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
